@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<style type="text/css">
+	body, html{width: 100%;height: 100%;margin:0;font-family:"微软雅黑";}
+	#allmap {width: 100%; height:100%; overflow: hidden;}
+	#result {width:100%;font-size:12px;}
+	dl,dt,dd,ul,li{
+		margin:0;
+		padding:0;
+		list-style:none;
+	}
+	p{font-size:12px;}
+	dt{
+		font-size:14px;
+		font-family:"微软雅黑";
+		font-weight:bold;
+		border-bottom:1px dotted #000;
+		padding:5px 0 5px 5px;
+		margin:5px 0;
+	}
+	dd{
+		padding:5px 0 0 5px;
+	}
+	li{
+		line-height:28px;
+	}
+	</style>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=CVEaWDy7EcNkNaVWF5BfUobK2xWLCGOG"></script>
+	<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+	<title>鼠标绘制轨迹工具</title>
+</head>
+<body>
+	<div id="allmap" style="overflow:hidden;zoom:1;position:relative;">	
+		<button type="button" style="position: absolute; top:0px; right:0px; z-index:1" onclick="doAjaxSend()"">发送编辑数据</button>
+		<button type="button" style="position: absolute; top:0px; right:100px; z-index:1" onclick="doAjaxRecv()"">获取轨迹数据</button>
+		<div id="map" style="z-index:2; height:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;"></div>
+	</div>
+	
+	<script type="text/javascript">
+	// 百度地图API功能
+    var map = new BMap.Map('map');
+	var poi = new BMap.Point(114.307852,15.057031);
+	var tempoint = new BMap.Point();
+    map.centerAndZoom(poi, 7);
+	map.enableScrollWheelZoom();  
+	//完善左右键逻辑
+	var check = 0;
+	map.addEventListener("click",function(e){
+		console.log(e.point);
+		if(check==0){
+			map.addEventListener("mousemove",checkpos);
+			check=check+1;
+		}
+	});
+	map.addEventListener("rightclick",function(e){
+	
+		if(check==1)
+		{
+			map.removeEventListener("mousemove",checkpos);
+			check=check-1;
+		}
+	});
+
+	//构造出预定需求的数据格式
+	var Posarray=[];//用于保存创造点集序列的数组
+	var CPoint = new Object();//用于构造lng,lat,index的数据结构
+	var index = 0;
+
+	var Getedpos=[];
+	var funcflag = true;//用于设置间隔
+	var temporary=[];//定义中间新取出的值放到一个新的数组里面
+	var interval = setInterval(function(){
+		funcflag = true;
+	},50);
+
+	//鼠标事件监控的操作函数
+	function checkpos(e){
+		if(funcflag==true){
+			console.log(e.point);
+			if(temporary.length == 0){
+				temporary[0]=e.point;
+			}
+			else{
+				temporary[1]=e.point;
+			}
+			CPoint.lng=e.point.lng;
+			CPoint.lat=e.point.lat;
+			CPoint.index=index;
+			/*
+			var temp = JSON.stringify(CPoint);
+			console.log(temp);
+			*/
+			Posarray.push(CPoint);
+			drewLine(map,temporary);//画线调用
+			funcflag=false;
+			index=index+1;
+		}
+	}
+	//划线的函数
+	function drewLine(map,temporary) {
+		if(temporary && temporary.length>1){
+				var polyline = new BMap.Polyline(
+					[
+						new BMap.Point(temporary[0].lng,temporary[0].lat),
+						new BMap.Point(temporary[1].lng,temporary[1].lat)
+					],
+					{strokeColor:"red",
+						strokeWeight:2,
+						strokeOpacity:1
+					});
+				map.addOverlay(polyline);
+				temporary[0]=temporary[1];
+		}
+	}
+	//ajax发送数据
+	function doAjaxSend(){
+		$.ajax({
+			url:'URL!',
+			type:'POST',
+			dataType:'json',
+			contentType:'application/json;charset=UTF-8',
+			data:JSON.stringify(Posarray),
+			success:function(){
+				console.log("Post info suss!");
+			}
+		});
+	}
+	function doAjaxRecv(){
+		$.ajax({
+			async: false,
+			type: "get",
+			url: "URL!",
+			dataType: "json",
+			success: function (data) {//这里data参数是ajax从服务器获取的数据
+				console.log(data);
+				Getedpos=data.slice(0);
+			}
+		});
+	}
+
+</script>
+</body>
+</html>
