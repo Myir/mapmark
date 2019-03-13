@@ -35,7 +35,8 @@
 <body>
 	<div id="allmap" style="overflow:hidden;zoom:1;position:relative;">	
 		<button type="button" style="position: absolute; top:0px; right:0px; z-index:1" onclick="doAjaxSend()"">发送编辑数据</button>
-		<button type="button" style="position: absolute; top:0px; right:100px; z-index:1" onclick="doAjaxRecv()"">获取轨迹数据</button>
+		<button type="button" name="recv" style="position: absolute; top:0px; right:100px; z-index:1" onclick="doAjaxRecv()"">获取轨迹数据</button>
+		<input type="text" style="position: absolute; top:0px; right:200px; z-index:1" value="" id="textinput">
 		<div id="map" style="z-index:2; height:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;"></div>
 	</div>
 	
@@ -43,15 +44,26 @@
 	// 百度地图API功能
     var map = new BMap.Map('map');
 	var poi = new BMap.Point(114.307852,15.057031);
+	map.setDefaultCursor("default");
+
 	var tempoint = new BMap.Point();
     map.centerAndZoom(poi, 7);
 	map.enableScrollWheelZoom();  
 	//完善左右键逻辑
+	var requestid=0;
 	var check = 0;
 	map.addEventListener("click",function(e){
 		console.log(e.point);
 		if(check==0){
+			map.setDefaultCursor("crosshair");
 			map.addEventListener("mousemove",checkpos);
+			//画起点
+			
+			var pt = new BMap.Point(e.point.lng,e.point.lat);
+			var myIcon = new BMap.Icon("a.svg",new BMap.Size(20,20));
+			var marker1 = new BMap.Marker(pt,{icon:myIcon});  // 创建标注
+			map.addOverlay(marker1); 
+
 			check=check+1;
 		}
 	});
@@ -60,7 +72,12 @@
 		if(check==1)
 		{
 			map.removeEventListener("mousemove",checkpos);
-			check=check-1;
+			map.setDefaultCursor("default");
+			var pt2 = new BMap.Point(e.point.lng,e.point.lat);
+			var myIcon2 = new BMap.Icon("b.svg",new BMap.Size(20,20));
+			var marker2 = new BMap.Marker(pt2,{icon:myIcon2});  // 创建标注
+			map.addOverlay(marker2); 
+			check=2;
 		}
 	});
 
@@ -107,7 +124,7 @@
 						new BMap.Point(temporary[0].lng,temporary[0].lat),
 						new BMap.Point(temporary[1].lng,temporary[1].lat)
 					],
-					{strokeColor:"red",
+					{strokeColor:"gray",
 						strokeWeight:2,
 						strokeOpacity:1
 					});
@@ -117,6 +134,8 @@
 	}
 	//ajax发送数据
 	function doAjaxSend(){
+		map.clearOverlays();
+		check=0;
 		$.ajax({
 			url:'URL!',
 			type:'POST',
@@ -129,10 +148,12 @@
 		});
 	}
 	function doAjaxRecv(){
+		requestid=$("#textinput").val();
+		console.log(requestid);
 		$.ajax({
 			async: false,
 			type: "get",
-			url: "URL!",
+			url: "URL!?ph="+requestid,
 			dataType: "json",
 			success: function (data) {//这里data参数是ajax从服务器获取的数据
 				console.log(data);
@@ -140,6 +161,7 @@
 			}
 		});
 	}
+
 
 </script>
 </body>
