@@ -29,13 +29,13 @@
 	}
 	</style>
 	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=CVEaWDy7EcNkNaVWF5BfUobK2xWLCGOG"></script>
-	<script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+	<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
 	<title>鼠标绘制轨迹工具</title>
 </head>
 <body>
 	<div id="allmap" style="overflow:hidden;zoom:1;position:relative;">	
 		<button type="button" style="position: absolute; top:0px; right:0px; z-index:1" onclick="doAjaxSend()"">发送编辑数据</button>
-		<button type="button" name="recv" style="position: absolute; top:0px; right:100px; z-index:1" onclick="doAjaxRecv()"">获取轨迹数据</button>
+		<button type="button" name="recv" style="position: absolute; top:0px; right:100px; z-index:1" onclick="doAjaxRecv(Map)"">获取轨迹数据</button>
 		<input type="text" style="position: absolute; top:0px; right:200px; z-index:1" value="" id="textinput">
 		<div id="map" style="z-index:2; height:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;"></div>
 	</div>
@@ -77,16 +77,15 @@
 			var myIcon2 = new BMap.Icon("b.svg",new BMap.Size(20,20));
 			var marker2 = new BMap.Marker(pt2,{icon:myIcon2});  // 创建标注
 			map.addOverlay(marker2); 
+			console.log(Posarray);
 			check=2;
 		}
 	});
 
 	//构造出预定需求的数据格式
 	var Posarray=[];//用于保存创造点集序列的数组
-	var CPoint = new Object();//用于构造lng,lat,index的数据结构
 	var index = 0;
 
-	var Getedpos=[];
 	var funcflag = true;//用于设置间隔
 	var temporary=[];//定义中间新取出的值放到一个新的数组里面
 	var interval = setInterval(function(){
@@ -96,16 +95,18 @@
 	//鼠标事件监控的操作函数
 	function checkpos(e){
 		if(funcflag==true){
-			console.log(e.point);
+			
 			if(temporary.length == 0){
 				temporary[0]=e.point;
 			}
 			else{
 				temporary[1]=e.point;
 			}
+			var CPoint = new Object();//用于构造lng,lat,index的数据结构
 			CPoint.lng=e.point.lng;
 			CPoint.lat=e.point.lat;
 			CPoint.index=index;
+			console.log(CPoint);
 			/*
 			var temp = JSON.stringify(CPoint);
 			console.log(temp);
@@ -132,12 +133,27 @@
 				temporary[0]=temporary[1];
 		}
 	}
+	//使用ajax接收的数据进行绘图
+	function recvdrew(map,data) {
+		for(var i=0;i+1<data.length;i++){
+			var polyline = new BMap.Polyline(
+				[
+					new BMap.Point(data[i].lng,data[i].lat),
+					new BMap.Point(data[i+1].lng,data[i+1].lat)
+				],
+				{strokeColor:"dark",
+					strokeWeight:2,
+					strokeOpacity:1
+				});
+			map.addOverlay(polyline);
+		}
+	}
 	//ajax发送数据
 	function doAjaxSend(){
 		map.clearOverlays();
 		check=0;
 		$.ajax({
-			url:'URL!',
+			url:'test.json',
 			type:'POST',
 			dataType:'json',
 			contentType:'application/json;charset=UTF-8',
@@ -147,7 +163,7 @@
 			}
 		});
 	}
-	function doAjaxRecv(){
+	function doAjaxRecv(map){
 		requestid=$("#textinput").val();
 		console.log(requestid);
 		$.ajax({
@@ -155,9 +171,9 @@
 			type: "get",
 			url: "URL!?ph="+requestid,
 			dataType: "json",
-			success: function (data) {//这里data参数是ajax从服务器获取的数据
+			success: function (data,map) {//这里data参数是ajax从服务器获取的数据
 				console.log(data);
-				Getedpos=data.slice(0);
+				recvdrew(map,data);
 			}
 		});
 	}
